@@ -1,0 +1,671 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+// City and Guilds Level 4 Procedural Programming Task 3 Soft Ireland Payroll Application Software By Stephen O Leary
+namespace PayRoll
+{
+    public partial class Form1 : Form
+    {
+        string comboBoxPay;// global variable for assigning a value of comboboxPayType
+        double tempDefault;// provides alternative/zero value for textboxes when there is an error caught during validation
+        double tempGlobalPay, tempGlobalTax, tempGlobalNetSalary;// These global variables are used for assigning the value 
+                                                                 //of grossSalary, tax paid and net salary
+
+        // The global variables below are created in order to store inputted data from a corresponding textboxes which will be 
+        // parsed from a string value, or for variable which stores the result of a calculation between some of these 
+        // textbox values        
+        private double EmpNo, Tax, TaxPayable, NetPay, /*SalaryPay*/ SalaryCommissionPay, PiecePay, PiecePayAndOverTime, RatePerHour, NormalHours,
+        OverTimeRate, OverTimeHours, OverTimeAmount, SaleAmount, CommissionPercent, CommissionAmount, BaseSalary;
+        //
+        string last_Name, first_Name;// global declaration of string for last and first name
+                                     //
+        private static string REGX = "^[\\p{L}''--']{1,40}$";// The pattern in the regex class may contain up to 40 characters but they may only be letters 
+                                                             //from a-z and may be upper or lower case
+        private void comboBoxPayType_SelectedIndexChanged(object sender, EventArgs e)// Event handler created to deal with the comboboxPaytype
+        {// this event handler enables disables certain groupboxes when a certain option is selected if piecepay is selected groupbox4
+         //and groupbox 5 are disabled but groupbox 2 is enabled which deals with piecepay. 
+         //            
+            if (comboBoxPayType.Text == "Piece Pay")// if piece is selected do the following
+            {
+                textBoxPeriod.Text = "Weekly";// sets period textbox to weekly
+                groupBoxPiecePay.Enabled = true; // enables groupboxPiecePay
+                clearGroupBoxPiecePay();// clears groupboxPiecePay and sets background to whitesmoke
+                clearGroupBoxOverTime();// clears groupOverTime and sets background to whitesmoke
+                groupBoxOverTime.Enabled = false;// disables groupBoxOverTime
+                setGroupBoxPiecePayWhite();// sets background to white on textboxes in groupboxPiecePay
+                setTextBoxTaxWhite();// sets background to white on textboxtax
+                groupBoxCommissionAndSalary.Enabled = false;// enables groupbox CommissionAndSalary
+                clearGroupBoxCommissionAndSalary();// clears groupbox CommissionAndSalary
+                clearGroupBoxDisplay();// clears groupboxDisplay
+                comboBoxOtSelection.Enabled = true;// enables comboboxOtselection
+            }
+            else if (comboBoxPayType.Text == "Salary") // if salary is selected the piecepay
+            {
+                textBoxPeriod.Text = "Monthly";// set textboxperiod to monthly
+                groupBoxPiecePay.Enabled = true;// enables groupboxPiecePay
+                clearGroupBoxPiecePay();// clears groupboxPiecePay
+                setGroupBoxPiecePayWhite();// sets background to white on textboxes in groupboxPiecePay
+                setTextBoxTaxWhite();// sets background to white on textbox tax
+                groupBoxCommissionAndSalary.Enabled = false; // enables groupboxCommissionAndSalary
+                clearGroupBoxCommissionAndSalary(); // clear groupboxCommissionAndSalary
+                clearGroupBoxDisplay(); // clear groupboxDisplay
+                groupBoxOverTime.Enabled = false; //enable groupboxOverTime
+                clearGroupBoxOverTime();// clear groupboxOverTime
+                comboBoxOtSelection.Enabled = false; // enable comboboxOTSelection
+            }
+            else
+            {
+                textBoxPeriod.Text = "Monthly";// set textboxPeriod to monthly
+                groupBoxCommissionAndSalary.Enabled = true;// enables groupBoxCommissionAndSalary
+                enableGroupBoxCommissionAndSalary(); // enables groupboxCommissionAndSalary
+                setTextBoxTaxWhite();// sets textboxTax to white
+                groupBoxPiecePay.Enabled = false;// disables groupboxPiecePay
+                clearGroupBoxPiecePay();// Clears groupBox PiecePay
+                groupBoxOverTime.Enabled = false; // Enables groupboxOverTime
+                clearGroupBoxOverTime(); // Clears groupboxOvertime and sets textboxes to whitesmoke
+                clearGroupBoxDisplay(); // clears groupboxDisplay and sets textboxes to whitesmoke except textboxTax which is set to white 
+
+            }
+            comboBoxPay = comboBoxPayType.Text;// assigns the text in the comboBoxPayType to global variable comoboBoxPay
+        }
+        private void comboBoxOtSelection_SelectedIndexChanged(object sender, EventArgs e)// Ot combobox selection
+        {
+            if (comboBoxOtSelection.Text == "OverTime")
+            {
+                groupBoxOverTime.Enabled = true;// Enables groupBoxOverTime
+                enableGroupBoxOverTime();// Enables groupBoxOverTime
+                groupBoxCommissionAndSalary.Enabled = false; // Disables groupBoxCommissionAndSalary
+                clearGroupBoxCommissionAndSalary();// Clears groupBoxCommissionAndSalary 
+            }
+
+            else if (comboBoxOtSelection.Text == "No OverTime")
+            {
+                clearGroupBoxOverTime();// clears groupBoxOverTime
+                groupBoxOverTime.Enabled = false; // Disables groupBoxOverTime
+                clearGroupBoxDisplayExceptTax(); // Clears all groupBoxes in groupBoxDisplay except tax
+            }
+            else
+            {
+               
+            }
+        }
+
+        private static Regex pattern = new Regex(REGX);//Regex class provides pattern matching to validate first name and last name
+                                                       // instead of using exception handling
+        public Form1()
+        {
+            InitializeComponent();
+        }
+        private bool valiadateFirstLastName(string name)// validates name inputs in groupboxPrimary
+        {
+            return pattern.IsMatch(name);// sends firstname to the isMatch method in the regex class
+        }
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            this.comboBoxPayType.Items.Add("Piece Pay");// In ComboPayType "Piece Pay" will appear as a dropdown option when the form loads
+            this.comboBoxPayType.Items.Add("Salary");// In ComboPayType "Salary" will appear as a dropdown option when the form loads
+            this.comboBoxPayType.Items.Add("Commision + Salary");// In ComboPayType "Commision + Salary" Pay will appear as a dropdown option when the form loads
+            this.comboBoxOtSelection.Items.Add("No OverTime");// In ComboPayType "No OverTime"will appear as a dropdown option when the form loads
+            this.comboBoxOtSelection.Items.Add("OverTime");// In ComboPayType "OverTime" will appear as a dropdown option when the form loads
+            textBoxTax.BackColor = System.Drawing.Color.WhiteSmoke;// Sets textbox tax to whitesmoke     
+        }
+        private bool dataValidation_First_Name()// textBox firstName validation returns true or false depending on whether the data entered is a proper firstname
+        {// for it to be considered a correct firstname match the criteria in the regex no more than forty characters either upper or lower case and must no contain
+         //numbers or special characters
+            if (!valiadateFirstLastName(this.textBoxFirstName.Text))// sending the text of textBoxFirstName text to the validateFirstLastName method where it 
+                                                                    //is sent to the pattern.isMatch method
+            {
+                MessageBox.Show("Please enter a valid First Name...");// Display Error Message
+                textBoxFirstName.BackColor = System.Drawing.Color.Red;// textBoxFirstName is set to red.
+                return false;// Not within regex parameters false is returned                
+            }
+            else
+            {
+                first_Name = this.textBoxFirstName.Text;// assign the firstname in the textBoxFirstName to the first_Name variable
+                textBoxFirstName.BackColor = System.Drawing.Color.White;// textBoxFirstName is set to white.
+                return true;// within regex parameters true is returned
+            }
+        }
+        private bool dataValidation_Last_Name() // textBoxLastName validation returns true or false depending on whether the data entered is a proper firstname
+        {// for it to be considered a correct firstname match the criteria in the regex no more than forty characters either upper or lower case and must no contain
+         //numbers or special characters
+            if (valiadateFirstLastName(this.textBoxLastName.Text))
+            {
+                last_Name = this.textBoxLastName.Text;// assign the lastName in the textBoxLastName to the Last_Name variable
+                textBoxLastName.BackColor = System.Drawing.Color.White;// textBoxLastName is set to white.
+                return true;// within regex parameters true is returned
+            }
+            else
+            {
+                MessageBox.Show("Please enter a valid Last Name...");  // Display Error Message  
+                textBoxLastName.BackColor = System.Drawing.Color.Red;// textBoxLastName is set to red.
+                return false;// Not within regex parameters false is returned
+            }
+        }
+        bool validateFirstName()// validates FirstName
+        {
+            if (dataValidation_First_Name() != false)
+            {
+                return true;// returns true if dataValidation_First_Name() is not false
+            }
+            else { return false; } //returns false if dataValidation_First_Name() is false       
+        }
+        bool validateLastName()// validates LastName
+        {
+            if (dataValidation_Last_Name() != false)
+            {
+                return true;// returns true if datavalidaiton_LastName() is not false
+            }
+            else { return false; }//returns false if dataValidation_Last_Name() is false 
+        }
+        private bool validateEmpNo()// Validates textboxEmpNo and returns a bool value of true or false true if the data entered can be parsed to a double
+        {// but it will return false if the data cannot be parsed to a double
+            bool EmpNoSuccessfull = double.TryParse(textBoxEmpNo.Text, out EmpNo);// The Try.Parse method attempts to change the string value 
+                                                                                  //entered into the textBoxEmpNo to a double if it changes it to a double it is sent to and stored in the global double value EmpNo 
+                                                                                  // using the out keyword if not the value in EmpNo is set to its default value which is zero 
+                                                                                  // if the Try.Parse is successfull the TryParse method will keep the EmpNoSuccessfull bool that it is assigned to false                    
+            if (!EmpNoSuccessfull)
+            {// if the Try.Parse is not successfull the TryParse method will keep the EmpNoSuccessfull bool that it is assigned to false
+                MessageBox.Show("Please enter a valid employee Number");// Display Error Message
+                textBoxEmpNo.BackColor = System.Drawing.Color.Red;// textBoxEmpNo is set to red.
+                return false;// Try.Parse was not successful so false is returned from validateEmpNo()
+
+            }
+            else
+            {// if the Try.Parse is successfull the TryParse method will set the EmpNoSuccessfull bool that it is assigned to, to true
+                textBoxEmpNo.BackColor = System.Drawing.Color.White;// textBoxEmpNo is set to white.
+                return true;// Try.Parse was successful so true is returned from validateEmpNo()
+            }
+        }
+        private bool validateTax()// Validates validateTax() and returns a bool value of true or false true if the data entered can be parsed to a double
+        {// but it will return false if the data cannot be parsed to a double
+            bool taxSuccessfull = double.TryParse(textBoxTax.Text, out Tax);// The Try.Parse method attempts to change the string value 
+                                                                            //entered into the validateTax() to a double if it changes it to a double it is sent to and stored in the global double value Tax 
+                                                                            // using the out keyword if not the value in Tax is set to its default value which is zero 
+                                                                            // if the Try.Parse is successfull the TryParse method will keep the taxSuccessfull bool that it is assigned to false       
+            if (!taxSuccessfull)
+            {
+                MessageBox.Show("Please enter a number for tax");// Display Error Message
+                textBoxTax.BackColor = System.Drawing.Color.Red; // textBoxTax is set to red.
+                return false;// Try.Parse was not successful so false is returned from validateTax()
+            }
+            else
+            {
+                textBoxTax.BackColor = System.Drawing.Color.White;// textBoxTax is set to white.
+                return true;// Try.Parse was successful so true is returned from validateTax()
+            }
+        }
+        bool validateRatePerHour()// Validates validateRatePerHour() and returns a bool value of true or false true if the data entered can be parsed to a double
+        {// but it will return false if the data cannot be parsed to a double
+            bool RatePerHourSuccessfull = double.TryParse(textBoxRatePerHour.Text, out RatePerHour);// The Try.Parse method attempts to change the string value 
+                                                                                                    // entered into the textBoxRatePerHour to a double if it changes it to a double it is sent to and stored in the global double value RatePerHour 
+                                                                                                    // using the out keyword if not the value in RatePerHour is set to its default value which is zero 
+                                                                                                    // if the Try.Parse is successfull the TryParse method will keep the RatePerHourSuccessfull bool that it is assigned to false            
+            if (!RatePerHourSuccessfull)
+            {
+                MessageBox.Show("Please enter a number for Rate per hour");// Display Error Message
+                textBoxRatePerHour.BackColor = System.Drawing.Color.Red; // textBoxRatePerHour is set to red.
+                return false;// Try.Parse was not successful so false is returned from validateRatePerHour()
+            }
+            else
+            {
+                textBoxRatePerHour.BackColor = System.Drawing.Color.White;// textBoxRatePerHour is set to white.
+                return true;// Try.Parse was successful so true is returned from validateRatePerHour()
+            }
+        }
+        bool validateNormalHours()// Validates validateNormalHours() and returns a bool value of true or false true if the data entered can be parsed to a double
+        {// but it will return false if the data cannot be parsed to a double            
+            bool NormalHoursSuccessfull = double.TryParse(textBoxNormalHours.Text, out NormalHours);// The Try.Parse method attempts to change the string value 
+                                                                                                    // entered into the textBoxNormalHours to a double if it changes it to a double it is sent to and stored in the global double value NormalHours 
+                                                                                                    // using the out keyword if not the value in NormalHours is set to its default value which is zero 
+                                                                                                    // if the Try.Parse is successfull the TryParse method will keep the NormalHoursSuccessfull bool that it is assigned to false
+            if (!NormalHoursSuccessfull)
+            {
+                MessageBox.Show("Please enter a number normal hours");// Display Error Message
+                textBoxNormalHours.BackColor = System.Drawing.Color.Red;// textBoxNormalHours is set to red.
+                return false;// Try.Parse was not successful so false is returned from validateNormalHours()
+            }
+            else
+            {
+                textBoxNormalHours.BackColor = System.Drawing.Color.White;// textBoxNormalHours is set to white.
+                return true;// Try.Parse was successful so true is returned from validateNormalHours()
+            }
+        }
+        bool validateOverTimeRate()
+        {// Validates validateOverTimeRate() and returns a bool value of true or false true if the data entered can be parsed to a double
+         // but it will return false if the data cannot be parsed to a double
+            bool OverTimeRateSucessfull = double.TryParse(textBoxOverTimeRate.Text, out OverTimeRate);// The Try.Parse method attempts to change the string value 
+                                                                                                      // entered into the textBoxOverTimeRate to a double if it changes it to a double it is sent to and stored in the global double value OverTimeRate 
+                                                                                                      // using the out keyword if not the value in OverTimeRate is set to its default value which is zero 
+                                                                                                      // if the Try.Parse is successfull the TryParse method will keep the OverTimeRateSucessfull bool that it is assigned to false          
+            if (!OverTimeRateSucessfull)
+            {
+                MessageBox.Show("Please enter a number for overTime rate");// Display Error Message
+                textBoxOverTimeRate.BackColor = System.Drawing.Color.Red;// textBoxOverTimeRate is set to red.
+                return false;// Try.Parse was not successful so false is returned from validateOverTimeRate()
+            }
+            else
+            {
+                textBoxOverTimeRate.BackColor = System.Drawing.Color.White;// textBoxOverTime is set to white.
+                return true;// Try.Parse was successful so true is returned from validateOverTimeRate()
+            }
+        }
+        bool validateOverTimeHours()// Validates validateOverTimeHours() and returns a bool value of true or false true if the data entered can be parsed to a double
+        {// but it will return false if the data cannot be parsed to a double      
+            bool OverTimeHoursSuccessfull = double.TryParse(textBoxOverTimeHours.Text, out OverTimeHours);// The Try.Parse method attempts to change the string value 
+                                                                                                          // entered into the textBoxOverTimeHours to a double if it changes it to a double it is sent to and stored in the global double value OverTimeHours 
+                                                                                                          // using the out keyword if not the value in OverTimeHours is set to its default value which is zero 
+                                                                                                          // if the Try.Parse is successfull the TryParse method will keep the OverTimeHoursSuccessfull bool that it is assigned to false
+            if (!OverTimeHoursSuccessfull)
+            {
+                MessageBox.Show("Please enter a number for overtime hours");// Display Error Message
+                textBoxOverTimeHours.BackColor = System.Drawing.Color.Red;// textBoxOverTimeHours is set to red.
+                return false;// Try.Parse was not successful so false is returned from validateOverTimeHours()
+            }
+            else
+            {
+                textBoxOverTimeHours.BackColor = System.Drawing.Color.White;// textBoxOverTimeHours is set to white.
+                return true;// Try.Parse was successful so true is returned from validateOverTimeHours()
+            }
+        }
+        bool validateBaseSalary()// Validates validateBaseSalary() and returns a bool value of true or false true if the data entered can be parsed to a double
+        {// but it will return false if the data cannot be parsed to a double
+            bool BaseSalarySuccessfull = double.TryParse(textBoxBaseSalary.Text, out BaseSalary);// The Try.Parse method attempts to change the string value 
+                                                                                                 // entered into the textBoxBaseSalary to a double if it changes it to a double it is sent to and stored in the global double value BaseSalary
+                                                                                                 // using the out keyword if not the value in BaseSalary is set to its default value which is zero 
+                                                                                                 // if the Try.Parse is successfull the TryParse method will keep the BaseSalarySuccessfull bool that it is assigned to false            
+            if (!BaseSalarySuccessfull)
+            {
+                MessageBox.Show("Please enter a number for base salary");// Display Error Message
+                textBoxBaseSalary.BackColor = System.Drawing.Color.Red;// textBoxBaseSalary is set to red.
+                return false;// Try.Parse was not successful so false is returned from validateBaseSalary()
+            }
+            else
+            {
+                textBoxBaseSalary.BackColor = System.Drawing.Color.White;// textBoxSalary is set to white.
+                return true;// Try.Parse was successful so true is returned from validateBaseSalary()
+            }
+        }
+        bool validateSaleAmount()// Validates validateSaleAmount() and returns a bool value of true or false true if the data entered can be parsed to a double
+        {// but it will return false if the data cannot be parsed to a double
+            bool SaleAmountSuccessfull = double.TryParse(textBoxSaleAmount.Text, out SaleAmount);// The Try.Parse method attempts to change the string value 
+                                                                                                 // entered into the textBoxSaleAmount to a double if it changes it to a double it is sent to and stored in the global double value SaleAmount
+                                                                                                 // using the out keyword if not the value in SaleAmount is set to its default value which is zero 
+                                                                                                 // if the Try.Parse is successfull the TryParse method will keep the SaleAmountSuccessfull bool that it is assigned to false
+            if (!SaleAmountSuccessfull)
+            {
+                MessageBox.Show("Please enter a number for saleAmount");// Display Error Message
+                textBoxSaleAmount.BackColor = System.Drawing.Color.Red;// textBoxSaleAmount is set to red.
+                return false;// Try.Parse was not successful so false is returned from validateSaleAmount()
+            }
+            else
+            {
+                textBoxSaleAmount.BackColor = System.Drawing.Color.White;// textBoxSaleAmount is set to white.
+                return true;// Try.Parse was successful so true is returned from validateSaleAmount()
+            }
+        }
+        bool validateCommissionPercent()// Validates validateCommissionPercent() and returns a bool value of true or false true if the data entered can be parsed to a double
+        {// but it will return false if the data cannot be parsed to a double
+            bool CommissionPercentSuccessfull = double.TryParse(textBoxCommissionPercent.Text, out CommissionPercent);// The Try.Parse method attempts to change the string value 
+                                                                                                                      // entered into the textBoxCommissionPercent.Text to a double if it changes it to a double it is sent to and stored in the global double value CommissionPercent
+                                                                                                                      // using the out keyword if not the value in CommissionPercent is set to its default value which is zero 
+                                                                                                                      // if the Try.Parse is successfull the TryParse method will keep the CommissionPercentSuccessfull bool that it is assigned to false
+            if (!CommissionPercentSuccessfull)
+            {
+                MessageBox.Show("Please enter a number for Commission Per cent");// Display Error Message
+                textBoxCommissionPercent.BackColor = System.Drawing.Color.Red;// textBoxCommssionPercent is set to red.
+                return false;// Try.Parse was not successful so false is returned from validateCommissionPercent()
+            }
+            else
+            {
+                textBoxCommissionPercent.BackColor = System.Drawing.Color.White;// textBoxCommissionAmount is set to white.
+                return true;// Try.Parse was successful so true is returned from validateCommissionPercent()
+            }
+        }
+        // Logic >> Start 
+        //******************************START OF PIECEPAY CALCULATION**********************************************************************************************************************
+        double calculatePiecePay()// Calculates PiecePay
+        {
+            PiecePay = (RatePerHour * NormalHours);  // Multiplying global variales RatePerHour by NormalHours and storing it in the double PiecePay          
+            return PiecePay;// Returns PiecePay as a double
+        }
+        double calculatePiecePayTax()// Calculates Tax
+        {
+            TaxPayable = PiecePay * Tax / 100;// Multiplies Global Variables PiecePay * Tax assigning the result to double TaxPayable
+            return TaxPayable;// returns double TaxPayable
+        }
+        double calculatePiecePayNetPay()// Calculates PiecePay NetPay
+        {
+            NetPay = PiecePay - TaxPayable;// Subtracts Global variable TaxPayable from PiecePay and stores the result in Global double NetPay
+            return NetPay;// Returns NetPay as double
+        }
+        //***************************START OVERTIME CALCULATION****************************************************************************************************************
+        double calculateOverTimeAndPiecePay()// Calculates OverTime
+        {
+            //PiecePayAndOverTime
+            PiecePayAndOverTime = (RatePerHour * NormalHours) + (OverTimeRate * OverTimeHours);// // Multiplying global variales RatePerHour by NormalHours
+                                                                                               //and storing it in the double PiecePay And adding in the OverTimeAmount
+            OverTimeAmount = OverTimeRate * OverTimeHours;// Calculates OverTimeAmount
+            textBoxOverTimeAmount.Text = OverTimeAmount.ToString();// Turns OverTimeAmount double to a String and assigns it to textBoxOverTimeAmount
+            return PiecePayAndOverTime;//This Returns PiecePay withOverTime added to it
+                                       //return PiecePayAndOverTime;
+        }
+        double calculateOverTimeAndPiecePayTax()// Calculates Overtime Tax
+        {
+            TaxPayable = PiecePayAndOverTime * Tax / 100;// Multiplies Global Variables PiecePay * Tax assigning the result to double TaxPayable
+            return TaxPayable;// returns double TaxPayable
+        }
+        double calculateOverTimeAndPiecePayNetPay()// Calculates overtime NetPay
+        {
+            NetPay = PiecePayAndOverTime - TaxPayable;// Subtracts Global variable TaxPayable from PiecePay and stores the result in Global double NetPay
+            return NetPay;// Returns NetPay as double
+        }
+        //***************************START OF SALARY CALCULATION****************************************************************************************************************
+        /*double calculateSalaryPay()// Calculates SalaryPay this is a monthly or 4 weekly payment
+        {
+            SalaryPay = RatePerHour * NormalHours * 4;// Multiplies Result of RatePerHour * Normal Hours by 4
+            return SalaryPay;// returns SalaryPay grossPay as a double
+        }*/
+        //***************************START OF SALARYCOMMISSIONPAY************************************************************************************************************************************
+        double calculateSalaryCommissionPay()// Calculates the Commission + Salary (Gross Pay)
+        {
+            SalaryCommissionPay = (SaleAmount * CommissionPercent / 100) + BaseSalary;// Multiplies global variables SaleAmount and the Commission Percent divided by 100
+                                                                                      // this gets the amount that has to paid in commission and adds the Base Salary to it this gets the gross pay and stores it in the double SalaryCommissionPay
+            CommissionAmount = SaleAmount * CommissionPercent / 100;// Multiplies SaleAmount and CommissionPercent divided by 100 to give the global double CommissionAmount
+            textBoxCommissionAmount.Text = CommissionAmount.ToString();// Changes the the double CommissionAmount to a string and assigns it to textBoxCommissionAmount
+            return SalaryCommissionPay;//returns Commission + Salary Pay grossPay as a double
+        }
+        double calculateSalaryCommissionPayTax()// Calculate Commission + Salary Pay Tax 
+        {
+            TaxPayable = SalaryCommissionPay * Tax / 100;// Multiplies the (Gross Pay) Commission + Salary by the tax divided by 100 and stores it the double
+                                                         //TaxPayable
+            return TaxPayable;// returns taxPayable as a double
+        }
+        double calculateSalaryCommissionPayNetPay()// Calculates Commission + Salary NetPay 
+        {
+            NetPay = SalaryCommissionPay - TaxPayable;// subtracts the TaxPayable from the SalaryCommissionPay to get the NetPay and assigns it to the NetPay double
+            return NetPay;// returns NetPay as a double
+        }
+
+        private void buttonExit_Click(object sender, EventArgs e)//Exits Application 
+        {
+            Application.Exit();
+        }
+
+        //***************************START OF VALIDATION*********************************************************************************************************************
+        string startValidation()// Starts validating bool methods where a true value being returned is desired in order to proceed to the next stage of validation
+        {
+            validateFirstName();// Method call validation for FirstName
+            validateLastName();// Method call validation for LastName          
+            validateComboPayType();// Method call validation for comboPayType
+            validateEmpNo();// Method call validation for EmpNo
+            validateTax();// Method call validation for Tax this is in a seperate group box (groupBoxDisplay)
+
+            if (validateFirstName() == true && validateLastName() == true && validateComboPayType() == true
+            && validateEmpNo() == true && validateTax() == true)// if everything in the groupBoxPrimary and the textBoxTax which is in the groupBoxDisplay
+                                                                //returns true then a choice from the option method will be returned
+            {
+                return option();// the option method will return a choice if validation complete
+            }
+            else
+            {  // if one or more of the methods returns false this string method will be returned it sets all of the textboxes except textboxTax to a zero value              
+                return (textBoxGrossSalary.Text = tempDefault.ToString()) + (textBoxTaxPayable.Text = tempDefault.ToString()) +
+                (textBoxNetSalary.Text = tempDefault.ToString());
+            }
+        }
+        string option()// if the conditions are met in the startValidation method to return the string method option one of the choices below will be returned
+        {
+            if (comboBoxPayType.Text == ("Piece Pay") && comboBoxOtSelection.Text != "OverTime")
+            {// if piecePay is selected from comboBoxPayType and OverTime
+             // is not selected then the validatePiecePay string method will be returned
+                return validatePiecePay();// returns string validatePiecePay() Method
+            }
+            else if (comboBoxOtSelection.Text == "OverTime" && comboBoxPayType.Text == "Piece Pay")
+            {// if Piece Pay is selected from comboBoxPayType and OverTime // is selected from comboBoxOtSelection then the validateOverTime() 
+             //string method will be returned
+                return validatePiecePayAndOverTime();// returns string method validateOverTime()
+            }
+            else if (comboBoxPayType.Text == ("Salary"))
+            {// if Salary is selected from comboBoxPayType then the validateSalary() string method will be returned
+                return validateSalary();// returns string validateSalary() Method
+            }
+            else if (comboBoxPayType.Text == "Commision + Salary")// if Commision + Salary is selected from comboBoxPayType then the validateCommissionSalary()
+                                                                  //string method will be returned
+            {
+                return validateCommissionSalary();// returns validateCommissionSalary()
+            }
+            
+            else// if no choice is a valid option then this else will be returned instead which is an empty string
+            {
+                return " ";// returns empty string
+            }
+        }
+        string validatePiecePay()
+        {// When the string method validate PiecePay is invoked it calls the bool methods for validating the textboxes in the PiecePay groupbox
+         // or groupBoxPiecePay if the data in these textboxes is incorrect false will be returns, but to proceed to the next stage of this method true must be 
+         // returned in both of these methods         
+            validateRatePerHour();// invoking validateRatePerHour() which is a bool method and returns true or false
+            validateNormalHours();// invoking validateNormalHours() which is a bool method and returns true or false
+
+            if (validateRatePerHour() == true && validateNormalHours() == true)
+            {// if both of these methods are returned true do the following          
+                comboBoxPayType.BackColor = System.Drawing.Color.White;// ComboBoxPayType is set to white.                
+                tempGlobalPay = calculatePiecePay();// the global double variable tempGlobalPay will be assigned the calculatePiecePay method which returns the gross pay as a double 
+                tempGlobalTax = calculatePiecePayTax();// the global double variable tempGlobalPay will be assigned the calculatePiecePay method which returns the gross pay as a double  
+                tempGlobalNetSalary = calculatePiecePayNetPay();// the global double variable tempGlobalPay will be assigned the calculatePiecePay method which returns the gross pay as a double 
+
+                return (textBoxGrossSalary.Text = tempGlobalPay.ToString()) + (textBoxTaxPayable.Text = tempGlobalTax.ToString()) +
+                (textBoxNetSalary.Text = tempGlobalNetSalary.ToString());//Returns The correct value for PiecePay to the groupboxDisplay textboxes textBoxGrossSalary,textBoxTaxPayable
+                                                                         //textBoxNetSalary
+            }
+            else// if either of groupboxPiecPay textboxes contain the wrong data for then the default or zero values will be returned for the groupboxDisplay textboxes 
+            {
+                return (textBoxGrossSalary.Text = tempDefault.ToString()) + (textBoxTaxPayable.Text = tempDefault.ToString()) +
+                (textBoxNetSalary.Text = tempDefault.ToString());// returns zero double values or default values for the display groupbox 
+                                                                 //textboxes except textBoxTax
+            }
+        }
+        string validateSalary()// When the string method validateSalary() is invoked it calls the bool methods for validating the textboxes in the PiecePay groupbox
+        {// or groupBoxPiecePay if the data in these textboxes is incorrect false will be returns, but to proceed to the next stage of this method true must be 
+         // returned in both of these methods  
+         // THE MAIN DIFFERENCE BETWEEN THIS METHOD AND validatePiecePay() is that the comboBoxOtSelection is disabled when salary selected and is being calcualted as their is no 
+         // overtime with salary wages also the salary gives a value of 4 times the Piece pay as piecpay is weekly and salary is monthly
+            validateRatePerHour();// invoking validateRatePerHour() which is a bool method and returns true or false
+            validateNormalHours();// invoking validateNormalHours() which is a bool method and returns true or false
+
+            if (validateRatePerHour() == true && validateNormalHours() == true)
+            {// if both of these methods are returned true do the following                 
+                comboBoxPayType.BackColor = System.Drawing.Color.White;// ComboBoxPayType is set to white.               
+                tempGlobalPay = calculatePiecePay() * 4;// Multiplies the calculatePiecePay() by 4 and assigns it to tempGlobalPay
+                tempGlobalTax = calculatePiecePayTax() * 4;// Multiplies the calculatePiecePayTax() by 4 and assigns it to tempGlobalTax
+                tempGlobalNetSalary = calculatePiecePayNetPay() * 4;// Multiplies the calculatePiecePayNetPay() by 4 and assigns it to empGlobalNetSalary
+
+                return (textBoxGrossSalary.Text = tempGlobalPay.ToString()) + (textBoxTaxPayable.Text = tempGlobalTax.ToString()) +
+                (textBoxNetSalary.Text = tempGlobalNetSalary.ToString());// Returns The correct value for Salary Pay to the groupboxDisplay textboxes 
+                                                                         //textBoxGrossSalary, textBoxTaxPayable and textBoxNetSalary
+            }
+            else
+            {
+                return (textBoxGrossSalary.Text = tempDefault.ToString()) + (textBoxTaxPayable.Text = tempDefault.ToString()) +
+                (textBoxNetSalary.Text = tempDefault.ToString());// returns zero double values or default values for the display groupbox 
+                                                                 //textboxes except textBoxTax
+            }
+        }
+
+        string validateCommissionSalary()// When the string method validateCommissionSalary() is invoked it calls the bool methods for validating the textboxes in 
+                                         //the groupBoxCommissionAndSalary if the data in these textboxes is incorrect false will be returned, but to proceed to the next stage of this 
+                                         //method true must be returned in all three of these methods.  
+        {
+            validateBaseSalary();// invoking validateBaseSalary() which is a bool method and returns true or false
+            validateSaleAmount();// invoking validateSaleAmount() which is a bool method and returns true or false
+            validateCommissionPercent();// invoking validateCommissionPercent() which is a bool method and returns true or false
+
+            if (validateBaseSalary() == true && validateSaleAmount() == true && validateCommissionPercent() == true)
+            {// if these three methods are returned true do the following 
+                comboBoxPayType.BackColor = System.Drawing.Color.White;// ComboBoxPayType is set to white.                
+                tempGlobalPay = calculateSalaryCommissionPay();// assigns calculateSalaryCommissionPay() which is the gross and returns a double to tempGlobalPay
+                tempGlobalTax = calculateSalaryCommissionPayTax();// assigns the Tax for CommissionAndSalary which returns a double to tempGlobalTax
+                tempGlobalNetSalary = calculateSalaryCommissionPayNetPay();// assigns the Netpay Commission + Salary which returns a double to tempGlobalNetSalary
+
+                return (textBoxGrossSalary.Text = tempGlobalPay.ToString()) + (textBoxTaxPayable.Text = tempGlobalTax.ToString()) +
+                (textBoxNetSalary.Text = tempGlobalNetSalary.ToString());// Sends the values above to to be displayed in their corresponding textboxes as strings using the 
+                                                                         //To.String() method
+            }
+            else
+            {
+                return (textBoxGrossSalary.Text = tempDefault.ToString()) + (textBoxTaxPayable.Text = tempDefault.ToString()) +
+                (textBoxNetSalary.Text = tempDefault.ToString());// returns zero double values or default values for all the display groupbox 
+                                                                 //textboxes except textBoxTax
+            }
+        }
+        string validatePiecePayAndOverTime()// When the string method validateOverTime() is invoked it calls the bool methods for validating the textboxes in 
+                                 //the PiecePay groupbox or groupBoxPiecePay and groupBoxOverTime if the data in these textboxes is incorrect false will be returned, but to proceed 
+                                 //to the next stage of this method true must be returned in all of these methods.
+        {
+            validateRatePerHour();// invoking validateRatePerHour() which is a bool method and returns true or false
+            validateNormalHours();// invoking validateNormalHours() which is a bool method and returns true or false
+            validateOverTimeRate();// invoking validateOverTimeRate() which is a bool method and returns true or false
+            validateOverTimeHours();// invoking validateOverTimeHours() which is a bool method and returns true or false
+
+            if (validateRatePerHour() == true && validateNormalHours() == true && validateOverTimeRate() == true &&
+            validateOverTimeHours() == true)// if all
+            {// if these four methods are returned true do the following
+                comboBoxPayType.BackColor = System.Drawing.Color.White;// ComboBoxPayType is set to white.            
+                tempGlobalPay = calculateOverTimeAndPiecePay();// assigns calculateOverTime() which is the gross for overTime and PiecePay assigned to tempGlobalPay
+                tempGlobalTax = calculateOverTimeAndPiecePayTax();// assigns calculateOverTimeTax() which is the tax for overTime and PiecePay assigned to tempGlobalTax 
+                tempGlobalNetSalary = calculateOverTimeAndPiecePayNetPay();// assigns calculateOverTimeTax() which is the tax for overTime and PiecePay assigned to tempGlobalTax
+
+                return (textBoxGrossSalary.Text = tempGlobalPay.ToString()) + (textBoxTaxPayable.Text = tempGlobalTax.ToString()) +
+                (textBoxNetSalary.Text = tempGlobalNetSalary.ToString());// Sends the values stored in tempGlobals above to be displayed in their corresponding textboxes 
+                                                                         //as strings using the To.String() method
+            }
+            else
+            {
+                return (textBoxGrossSalary.Text = tempDefault.ToString()) + (textBoxTaxPayable.Text = tempDefault.ToString()) +
+                (textBoxNetSalary.Text = tempDefault.ToString());// returns zero double values or default values for the display groupbox 
+                                                                 //textboxes except textBoxTax
+            }
+        }
+        public bool validateComboPayType()// Checks to see if comboBoxPayType is empty or equal to one of the three possible options
+        {
+            if (!String.IsNullOrEmpty(comboBoxPayType.Text) && comboBoxPayType.Text == "Salary" ||
+            comboBoxPayType.Text == "Piece Pay" || comboBoxPayType.Text == "Commision + Salary")
+            {
+                comboBoxPayType.BackColor = System.Drawing.Color.White;// ComboBoxPayType is set to white.
+                return true;// if it is not empty and does equal one of the three possible options then it will true
+            }
+            else
+            {
+                MessageBox.Show("Error combobox PayType empty or the correct Pay Type has not been selected");
+                comboBoxPayType.BackColor = System.Drawing.Color.Red;// textBoxComboPayType is set to red.
+                return false;// if it is empty or does not equal one of the three possible options then it will false
+            }
+        }
+        private void buttonCalculate_Click(object sender, EventArgs e)// this EventHandler starts the calculation and validation process
+        {
+            startValidation();// invokes the startValidation Method            
+        }
+        public void clearGroupBoxPrimary()
+        {
+            textBoxFirstName.Text = String.Empty;// textBoxFirstName is set to empty  
+            textBoxLastName.Text = String.Empty;// textBoxLastName is set to empty
+            textBoxEmpNo.Text = String.Empty;// textBoxEmpNo is set to empty
+            textBoxPeriod.Text = String.Empty;// textBoxPeriod is set to empty
+            textBoxTax.Text = String.Empty;// textBoxTax is set to empty
+            comboBoxPayType.ResetText();// clears comboboxPayType
+            textBoxFirstName.BackColor = System.Drawing.Color.White;// textBoxFirstName is set to white.
+            textBoxLastName.BackColor = System.Drawing.Color.White;// textBoxLastName is set to white.
+            textBoxEmpNo.BackColor = System.Drawing.Color.White;// textBoxEmpNo is set to white.             
+        }
+        public void clearGroupBoxPiecePay()
+        {
+            textBoxRatePerHour.Text = String.Empty;// textBoxRatePerHour is set to empty
+            textBoxNormalHours.Text = String.Empty;// textBoxNormalHours is set to empty
+            comboBoxOtSelection.ResetText();// clears comboboxOtSelection
+            textBoxRatePerHour.BackColor = System.Drawing.Color.WhiteSmoke;// textBoxRatePerHour is set to whiteSmoke
+            textBoxNormalHours.BackColor = System.Drawing.Color.WhiteSmoke;// textBoxNormalHours is set to whiteSmoke
+            comboBoxOtSelection.BackColor = System.Drawing.Color.WhiteSmoke;// ComboBoxOtSelection is set to whiteSmoke
+        }
+        public void setGroupBoxPiecePayWhite()
+        {
+            textBoxRatePerHour.BackColor = System.Drawing.Color.White;// textBoxRatePerHour is set to white.
+            textBoxNormalHours.BackColor = System.Drawing.Color.White;// textBoxNormalHours is set to white.
+            comboBoxOtSelection.BackColor = System.Drawing.Color.White;// comboBoxSelection is set to white.
+        }
+        public void clearGroupBoxDisplay()
+        {
+            textBoxTax.Text = String.Empty;
+            textBoxGrossSalary.Text = String.Empty;// textBoxGrossSalary is set to empty
+            textBoxTaxPayable.Text = String.Empty;// textBoxTaxPayable is set to empty
+            textBoxNetSalary.Text = String.Empty;// textBoxNetSalary is set to empty
+            textBoxTax.BackColor = System.Drawing.Color.White;// textBoxTax is set to White
+            textBoxGrossSalary.BackColor = System.Drawing.Color.WhiteSmoke;// textBoxGrossSalary is set to whiteSmoke
+            textBoxTaxPayable.BackColor = System.Drawing.Color.WhiteSmoke;
+            textBoxNetSalary.BackColor = System.Drawing.Color.WhiteSmoke;
+            labelTaxBracket.BackColor = System.Drawing.Color.WhiteSmoke;
+        }
+        public void clearGroupBoxDisplayExceptTax()
+        {
+            textBoxGrossSalary.Text = String.Empty;// textBoxGrossSalary is set to empty
+            textBoxTaxPayable.Text = String.Empty;// textBoxTaxPayable is set to empty
+            textBoxNetSalary.Text = String.Empty;// textBoxNetSalary is set to empty
+            textBoxTax.BackColor = System.Drawing.Color.White;// textBoxTax is set to white
+            textBoxGrossSalary.BackColor = System.Drawing.Color.WhiteSmoke;
+            textBoxTaxPayable.BackColor = System.Drawing.Color.WhiteSmoke;
+            textBoxNetSalary.BackColor = System.Drawing.Color.WhiteSmoke;
+            labelTaxBracket.BackColor = System.Drawing.Color.WhiteSmoke;
+        }
+        public void setTextBoxTaxWhite()
+        {
+            textBoxTax.BackColor = System.Drawing.Color.White;// textBoxTax is set to white.           
+        }
+        public void clearGroupBoxCommissionAndSalary()
+        {
+            textBoxBaseSalary.Text = String.Empty;// textBoxBaseSalary is set to empty.
+            textBoxSaleAmount.Text = String.Empty;// textBoxSaleAmount is set to empty.
+            textBoxCommissionPercent.Text = String.Empty;// textBoxCommissionPercent is set to empty.
+            textBoxCommissionAmount.Text = String.Empty;// textBoxCommissionAmount is set to empty.
+            textBoxBaseSalary.BackColor = System.Drawing.Color.WhiteSmoke;// textBaseSalary is set to WhiteSmoke;
+            textBoxSaleAmount.BackColor = System.Drawing.Color.WhiteSmoke;// textBoxSaleAmount is set to WhiteSmoke;
+            textBoxCommissionPercent.BackColor = System.Drawing.Color.WhiteSmoke;// textBoxCommissionPercent is set to WhiteSmoke;
+        }
+        public void enableGroupBoxCommissionAndSalary()
+        {
+            textBoxBaseSalary.BackColor = System.Drawing.Color.White;// textBoxBaseSalary is set to white.
+            textBoxSaleAmount.BackColor = System.Drawing.Color.White;// textBoxSaleAmount is set to white.
+            textBoxCommissionPercent.BackColor = System.Drawing.Color.White;// textBoxCommissionPercent is set to white.
+        }
+        public void clearGroupBoxOverTime()
+        {
+            textBoxOverTimeRate.Text = String.Empty;// textBoxOverTimeRate is set to empty.
+            textBoxOverTimeHours.Text = String.Empty;// textBoxOverHours is set to empty.
+            textBoxOverTimeAmount.Text = String.Empty;// textBoxOverTimeRate is set to empty.
+            textBoxOverTimeRate.BackColor = System.Drawing.Color.WhiteSmoke;// textBoxOverTimeRate is set to WhiteSmoke;
+            textBoxOverTimeHours.BackColor = System.Drawing.Color.WhiteSmoke;// textBoxOverTimeHours is set to WhiteSmoke
+            textBoxOverTimeAmount.BackColor = System.Drawing.Color.WhiteSmoke;// textBoxOverTimeAmount is set to WhiteSmoke
+        }
+        public void enableGroupBoxOverTime()
+        {
+            textBoxOverTimeRate.BackColor = System.Drawing.Color.White;// textBoxOverTimeRate is set to white.
+        }
+        private void buttonReset_Click(object sender, EventArgs e)//Resets all Fields when invoked
+        {
+            clearGroupBoxPrimary();// Clears groupBoxPrimary
+            clearGroupBoxPiecePay();// Clears groupBoxPiece
+            clearGroupBoxDisplay();// Clears groupBoxDisplay
+            clearGroupBoxCommissionAndSalary();// Clears groupBoxCommissionSalary
+            clearGroupBoxOverTime();// Clears groupBoxOverTime
+            groupBoxCommissionAndSalary.Enabled = false;// Disables groupBoxCommissionAndSalary
+            groupBoxPiecePay.Enabled = false;// Disables groupBoxPiecePay
+            groupBoxOverTime.Enabled = false;// Disables groupBoxOverTime
+            comboBoxPayType.BackColor = System.Drawing.Color.White;// sets comboBoxPayType to white
+        }
+    }
+}
